@@ -43,8 +43,10 @@ Reading
   `solid` is still read as binary when its size matches the facet count.
 - Clear errors for truncated binaries, unclosed ASCII facets, bad numbers (with line numbers) and
   empty files. Facets with NaN/infinite coordinates are dropped and reported as an error finding.
-- 3MF: the first build item, including components stored in other model parts (`p:path`, as
-  Bambu Studio and PrusaSlicer write them) and item/component transforms.
+- 3MF: every build item of the plate with its transform, including components stored in other
+  model parts (`p:path`, as Bambu Studio and PrusaSlicer write them). The whole plate is checked
+  as one mesh, and the result is broken down per build item (`objects` in `--json`, and a line per
+  failing item in the text output).
 
 Mesh model
 - Vertex welding with a tolerance (spatial hash, default 0.0001 mm), indexed faces, edge map.
@@ -58,7 +60,7 @@ Checks (each with severity, count and locations)
 | `open_boundaries` | error | holes: boundary loops with edge count and perimeter |
 | `inconsistent_winding` | error | faces whose winding disagrees with their shell (BFS propagation per shell) |
 | `exceeds_bed` | error / warning | larger than the build volume (warning if it fits after a 90 degree turn) |
-| `inside_out` | warning | closed shell with negative signed volume |
+| `inside_out` | warning | closed shell wound the wrong way for where it sits: an outer body with negative volume, or a cavity inside a body with outward normals |
 | `normal_mismatch` | warning | stored facet normal more than 45 degrees from the winding normal |
 | `degenerate_faces` | warning | zero-area faces or faces collapsed by welding |
 | `duplicate_faces` | warning | faces repeating the vertices of an earlier face |
@@ -66,10 +68,14 @@ Checks (each with severity, count and locations)
 | `self_intersections` | warning | triangles crossing other triangles (uniform-grid broad phase) |
 | `overhangs` | warning | downward faces steeper than the overhang limit, excluding faces on the bed |
 | `thin_walls` | warning | wall faces whose opposite wall is closer than N x nozzle |
-| `multiple_shells` | info | more than one body in the file |
+| `multiple_shells` | info | more than one shell in the file (bodies and voids counted separately) |
+| `internal_voids` | info | a correctly wound cavity (inward normals) inside a body; never "repaired" |
+| `embedded_shells` | info | an outward shell lying entirely inside another body (counted twice in the volume) |
 | `missing_normals` | info | zero stored normals (allowed by the format) |
 
-Also reported: bounding box, signed volume and surface area (total and per shell), watertightness,
+Also reported: bounding box, signed volume and surface area (total and per shell, with each shell's
+role: body, void, embedded, inside_out or open), watertightness, whether the volume is a sum over
+shells that overlap (`volume_is_sum_of_overlapping_shells`; the printed volume is then smaller),
 fit on Bambu Lab P1S/P1P/X1C/A1 (256 mm cube), A1 mini (180 mm cube) or a custom bed.
 
 Printability
@@ -81,7 +87,7 @@ Printability
 
 Repairs (`stl-doctor repair IN OUT`, never in place)
 - Weld vertices, remove degenerate and duplicate faces, unify winding per shell, invert inside-out
-  shells, fill simple planar holes by ear clipping, recompute all normals. The change log lists
+  shells (a correctly wound cavity is kept as it is), fill simple planar holes by ear clipping, recompute all normals. The change log lists
   exactly what changed and re-checks the result.
 
 Outputs
@@ -103,11 +109,11 @@ pip install "stl-doctor[fast] @ git+https://github.com/projectbin07-stack/stl-do
 
 ## Quick start
 
-The outputs below are from the fixtures in `tests/fixtures`, run with version 0.1.0.
+The outputs below are from the fixtures in `tests/fixtures`, run with version 0.2.0.
 
 ```console
 $ stl-doctor check overhang_t_binary.stl
-stl-doctor 0.1.0  overhang_t_binary.stl
+stl-doctor 0.2.0  overhang_t_binary.stl
   format     binary, 28 facets in file
   mesh       28 faces, 16 vertices (welded at 0.0001 mm), 1 shell(s)
   size       30.00 x 10.00 x 25.00 mm, fits Bambu Lab P1S (256 x 256 x 256 mm)
@@ -157,6 +163,24 @@ repaired cube_missing_face_binary.stl -> fixed.stl
   filled 1 hole with 2 triangles
   normals recomputed from winding for every face
   watertight: False -> True, volume 666.67 -> 1000.00 mm^3
+```
+
+A 20 mm cube with a 10 mm internal void (inner shell wound inward, as a cavity should be) is
+recognised as a void, and `repair` leaves it alone:
+
+```console
+$ stl-doctor check hollow.stl
+...
+  volume     7000.00 mm^3
+...
+  INFO  Internal voids [internal_voids]: 1
+        1 closed shell is a cavity inside a body, wound with inward normals as a cavity should be. The slicer leaves it empty and the volume already excludes it; `stl-doctor repair` keeps it.
+        at (10.0, 10.0, 10.0) volume_mm3=-1000.0
+$ stl-doctor repair hollow.stl fixed.stl
+...
+  inverted 0 inside-out shells
+...
+  watertight: True -> True, volume 7000.00 -> 7000.00 mm^3
 ```
 
 Suggest an orientation and write the rotated mesh:
@@ -252,7 +276,14 @@ Notes on the algorithms and their limits:
   neighbouring cells, so merging is exact to the tolerance and roughly linear in time.
 - **Winding** is propagated breadth-first across edges shared by exactly two faces. Within each
   shell the majority winding is taken as correct, so a single flipped face is reported as that face.
-  Whether the majority points outward is decided separately from the shell's signed volume.
+  Whether the majority points the right way is decided separately, from the shell's signed volume
+  and what contains it.
+- **Nesting**: a closed shell is inside another when its bounding box lies within the other's and
+  the generalised winding number (sum of signed solid angles / 4 pi) of a point on it, with respect
+  to the other shell, has magnitude above one half. Outermost shells should enclose positive
+  volume, a cavity inside a body negative volume, an island inside a cavity positive again. An
+  outward shell directly inside a body is treated as a buried body (`embedded_shells`), not as a
+  wrongly wound cavity, because the two cannot be told apart from geometry alone.
 - **Self-intersection**: each triangle is registered in the grid cells its bounding box overlaps;
   pairs that share a cell and whose boxes overlap get an exact plane-separation / interval-overlap
   test. Expected cost is close to linear for evenly sized triangles, worst case O(F^2) pair tests
@@ -300,8 +331,9 @@ included.
 
 ## Known limitations
 
-- Only triangle meshes; 3MF materials, colours, multiple build items and slicer metadata are
-  ignored, and only the first build item is read.
+- Only triangle meshes; 3MF materials, colours and slicer metadata are ignored.
+- The volume of overlapping shells is their sum, not their union. It is labelled as such, but the
+  union is not computed.
 - STL units are assumed to be millimetres.
 - Hole filling only closes loops that are planar (within 1% of their size) and do not touch
   themselves; anything else is reported as skipped. Non-manifold edges and self-intersections are
