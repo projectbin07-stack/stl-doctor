@@ -181,7 +181,12 @@ def format_text(report: Report) -> str:
         + ("fits " if s["fits_bed"] else "does NOT fit ")
         + opts.bed.label(),
         f"  volume     {s['volume_mm3']:.2f} mm^3"
-        + ("" if s["watertight"] else "  (surface not closed and consistent: unreliable)"),
+        + ("" if s["watertight"] else "  (surface not closed and consistent: unreliable)")
+        + (
+            "  (sum of overlapping shells: the printed volume is smaller)"
+            if s["volume_is_sum_of_overlapping_shells"]
+            else ""
+        ),
         f"  area       {s['area_mm2']:.2f} mm^2",
     ]
     for w in s["warnings"]:

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import math
 from collections import deque
 from dataclasses import dataclass, field
 
 from .mesh import Edge, EdgeMap, Mesh
-from .vec import cross, dot, length
+from .vec import Vec3, cross, dot, length, sub
 
 
 @dataclass
@@ -169,3 +170,111 @@ def boundary_loops(mesh: Mesh, edges: EdgeMap) -> list[BoundaryLoop]:
 def _d(mesh: Mesh, a: int, b: int) -> tuple[float, float, float]:
     pa, pb = mesh.vertices[a], mesh.vertices[b]
     return (pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2])
+
+
+def winding_number(mesh: Mesh, faces: list[int], p: Vec3) -> float:
+    """Generalised winding number of point ``p`` with respect to the triangles ``faces``.
+
+    For a closed shell with outward normals it is 1 inside and 0 outside (-1 inside when the
+    normals point inward). Each triangle contributes its signed solid angle seen from ``p``
+    (Van Oosterom and Strackee, 1983), divided by 4 pi.
+    """
+    total = 0.0
+    for f in faces:
+        a, b, c = (sub(q, p) for q in mesh.triangle(f))
+        la, lb, lc = length(a), length(b), length(c)
+        num = dot(a, cross(b, c))
+        den = la * lb * lc + dot(a, b) * lc + dot(b, c) * la + dot(c, a) * lb
+        total += 2.0 * math.atan2(num, den)
+    return total / (4.0 * math.pi)
+
+
+@dataclass
+class Nesting:
+    """How closed shells sit inside each other.
+
+    ``parent[i]`` is the index of the smallest closed shell that contains shell ``i`` (``None`` for
+    a shell that is not inside another one, and for open shells). ``role[i]`` is one of:
+
+    * ``"body"``: a solid whose winding is correct for its depth (outward normals at even depth),
+    * ``"void"``: a correctly wound cavity inside a body (inward normals),
+    * ``"embedded"``: an outward shell inside a body without a void between them (a separate solid
+      buried in another; slicers merge it, and the summed volume counts the overlap twice),
+    * ``"inside_out"``: a shell whose winding is wrong for its depth,
+    * ``"open"``: not closed, so inside and outside are undefined.
+    """
+
+    parent: list[int | None]
+    role: list[str]
+
+    @property
+    def inverted(self) -> list[int]:
+        return [i for i, r in enumerate(self.role) if r == "inside_out"]
+
+
+def _inside_box(inner: Shell, outer: Shell, eps: float) -> bool:
+    return all(
+        inner.lo[k] >= outer.lo[k] - eps and inner.hi[k] <= outer.hi[k] + eps for k in range(3)
+    )
+
+
+def _probe_point(mesh: Mesh, shell: Shell) -> Vec3:
+    """Centroid of the shell's largest face: a point on the shell away from its edges."""
+    best = max(shell.faces, key=mesh.face_area)
+    a, b, c = mesh.triangle(best)
+    return ((a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3, (a[2] + b[2] + c[2]) / 3)
+
+
+def nesting(mesh: Mesh, shell_list: list[Shell]) -> Nesting:
+    """Classify each shell from its signed volume *and* the shells that contain it.
+
+    A closed shell is inside another when its bounding box lies within the other's and a point
+    on it has a winding number of magnitude above one half with respect to the other shell. The
+    winding a shell should have follows from its parent: the outermost shells should enclose
+    positive volume, a cavity inside a body negative volume, an island inside a cavity positive
+    again. A correctly wound void is therefore *not* inside out, and an inside-out file (every
+    shell reversed) is still recognised as such.
+    """
+    n = len(shell_list)
+    parent: list[int | None] = [None] * n
+    role = ["open"] * n
+    closed = [i for i in range(n) if shell_list[i].closed]
+    vol = {i: signed_volume(mesh, shell_list[i].faces) for i in closed}
+    box = {
+        i: math.prod(max(shell_list[i].hi[k] - shell_list[i].lo[k], 0.0) for k in range(3))
+        for i in closed
+    }
+    for i in closed:
+        s = shell_list[i]
+        eps = 1e-9 * max(1.0, s.size)
+        probe: Vec3 | None = None
+        for j in closed:
+            if j == i or box[j] < box[i] or not _inside_box(s, shell_list[j], eps):
+                continue
+            if box[j] == box[i] and j > i:
+                continue  # identical boxes: only the earlier shell may contain the later one
+            if parent[i] is not None and box[j] >= box[parent[i]]:  # type: ignore[index]
+                continue  # already inside a smaller container
+            if probe is None:
+                probe = _probe_point(mesh, s)
+            if abs(winding_number(mesh, shell_list[j].faces, probe)) > 0.5:
+                parent[i] = j
+    # Decide roles outermost first, so every parent is classified before its children.
+    expected: dict[int, int] = {}
+    for i in sorted(closed, key=lambda k: -box[k]):
+        actual = 1 if vol[i] >= 0 else -1
+        p = parent[i]
+        if p is None:
+            want = 1
+        else:
+            want = -expected[p]
+            if actual == 1 and role[p] in ("body", "embedded"):
+                role[i] = "embedded"
+                expected[i] = 1
+                continue
+        expected[i] = want
+        if actual != want:
+            role[i] = "inside_out"
+        else:
+            role[i] = "body" if want == 1 else "void"
+    return Nesting(parent, role)

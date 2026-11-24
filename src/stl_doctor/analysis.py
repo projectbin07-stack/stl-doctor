@@ -21,12 +21,13 @@ from .printability import (
 from .printers import DEFAULT_PRINTER, PRINTERS, Bed
 from .topology import (
     BoundaryLoop,
+    Nesting,
     Orientation,
     Shell,
     boundary_loops,
+    nesting,
     orientation,
     shells,
-    signed_volume,
 )
 from .vec import Vec3, dot, normalize
 
@@ -88,6 +89,8 @@ class Report:
     boundary_edges: list[tuple[Vec3, Vec3]]
     non_manifold_edges: list[tuple[Vec3, Vec3]]
     problem_faces: set[int]
+    shell_roles: list[str] = field(default_factory=list)
+    shell_parents: list[int | None] = field(default_factory=list)
 
     @property
     def verdict(self) -> str:
@@ -151,8 +154,10 @@ class Report:
                     "area_mm2": _r(s.area),
                     "min": _pt(s.lo),
                     "max": _pt(s.hi),
+                    "role": self.shell_roles[i] if i < len(self.shell_roles) else "",
+                    "inside": self.shell_parents[i] if i < len(self.shell_parents) else None,
                 }
-                for s in self.shells
+                for i, s in enumerate(self.shells)
             ],
             "findings": [f.to_dict(opts.max_locations) for f in self.findings],
             "orientation": None
@@ -371,39 +376,78 @@ def analyze(mesh: Mesh, options: Options | None = None, path: str = "") -> Repor
     shell_list = shells(mesh, edges, excluded)
     shell_list.sort(key=lambda s: -abs(s.signed_volume))
     # Printability checks run on a copy whose winding is corrected (flipped faces turned back,
-    # inside-out shells inverted), so one bad face does not show up as a fake overhang.
+    # inside-out shells inverted), so one bad face does not show up as a fake overhang. Whether a
+    # closed shell is inside out depends on what contains it: a cavity inside a body is correctly
+    # wound with inward normals and negative volume.
     pmesh = _with_flipped(mesh, flipped)
-    inverted = [s for s in shell_list if s.closed and signed_volume(pmesh, s.faces) < 0]
+    nest: Nesting = nesting(pmesh, shell_list)
+    inverted = [shell_list[i] for i in nest.inverted]
     if inverted:
         pmesh = _with_flipped(pmesh, [f for s in inverted for f in s.faces])
-    if inverted:
         findings.append(
             Finding(
                 "inside_out",
                 WARNING,
-                "Inside-out shells (negative volume)",
+                "Inside-out shells",
                 len(inverted),
                 f"{_plural(len(inverted), 'closed shell')} "
-                f"{_v(len(inverted), 'has', 'have')}"
-                f" negative signed volume: all "
-                "normals point inward. Most slicers flip these automatically; "
-                "`stl-doctor repair` fixes the file.",
+                f"{_v(len(inverted), 'is', 'are')} wound the wrong way for where "
+                f"{_v(len(inverted), 'it sits', 'they sit')}: an outer body with inward "
+                "normals (negative volume), or a cavity inside a body with outward normals. "
+                "Most slicers flip outer bodies automatically; `stl-doctor repair` fixes the file.",
                 [_loc(_mid(s.lo, s.hi), volume_mm3=_r(s.signed_volume)) for s in inverted],
                 [f for s in inverted for f in s.faces],
             )
         )
+    voids = [shell_list[i] for i, r in enumerate(nest.role) if r == "void"]
+    embedded = [shell_list[i] for i, r in enumerate(nest.role) if r == "embedded"]
+    if voids:
+        findings.append(
+            Finding(
+                "internal_voids",
+                INFO,
+                "Internal voids",
+                len(voids),
+                f"{_plural(len(voids), 'closed shell')} "
+                f"{_v(len(voids), 'is a cavity', 'are cavities')} inside a body, wound with "
+                "inward normals as a cavity should be. The slicer leaves it empty and the "
+                "volume already excludes it; `stl-doctor repair` keeps it.",
+                [_loc(_mid(s.lo, s.hi), volume_mm3=_r(s.signed_volume)) for s in voids],
+            )
+        )
+    if embedded:
+        findings.append(
+            Finding(
+                "embedded_shells",
+                INFO,
+                "Bodies inside other bodies",
+                len(embedded),
+                f"{_plural(len(embedded), 'closed shell')} "
+                f"{_v(len(embedded), 'lies', 'lie')} entirely inside another body. Slicers "
+                "merge them, so they add nothing to the print, but the reported volume counts "
+                "them twice.",
+                [_loc(_mid(s.lo, s.hi), volume_mm3=_r(s.signed_volume)) for s in embedded],
+            )
+        )
     if len(shell_list) > 1:
+        n_bodies = len(shell_list) - len(voids)
         findings.append(
             Finding(
                 "multiple_shells",
                 INFO,
                 "Several shells",
                 len(shell_list),
-                f"The file contains {len(shell_list)} separate shells (bodies). That is fine for "
-                "multi-part plates; check that it is intended.",
+                f"The file contains {len(shell_list)} separate shells "
+                f"({_plural(n_bodies, 'body', 'bodies')}, {_plural(len(voids), 'void')}). "
+                "That is fine for multi-part plates; check that it is intended.",
                 [
-                    _loc(_mid(s.lo, s.hi), faces=len(s.faces), volume_mm3=_r(s.signed_volume))
-                    for s in shell_list
+                    _loc(
+                        _mid(s.lo, s.hi),
+                        faces=len(s.faces),
+                        volume_mm3=_r(s.signed_volume),
+                        role=nest.role[i],
+                    )
+                    for i, s in enumerate(shell_list)
                 ],
             )
         )
@@ -563,6 +607,11 @@ def analyze(mesh: Mesh, options: Options | None = None, path: str = "") -> Repor
         )
 
     volume = sum(s.signed_volume for s in shell_list)
+    # Overlapping or buried bodies make the summed volume larger than what prints.
+    shell_of = {f: i for i, s in enumerate(shell_list) for f in s.faces}
+    overlapping = any(
+        a in shell_of and b in shell_of and shell_of[a] != shell_of[b] for a, b in intersections
+    )
     area = sum(areas[f] for f in active)
     watertight = not boundary and not non_manifold and not orient.inconsistent_edges
     stats: dict[str, Any] = {
@@ -577,6 +626,8 @@ def analyze(mesh: Mesh, options: Options | None = None, path: str = "") -> Repor
         "max": _pt(hi),
         "size_mm": _pt(dims),
         "volume_mm3": _r(volume),
+        "volume_is_sum_of_overlapping_shells": overlapping or bool(embedded),
+        "voids": len(voids),
         "area_mm2": _r(area),
         "shells": len(shell_list),
         "watertight": watertight,
@@ -600,4 +651,7 @@ def analyze(mesh: Mesh, options: Options | None = None, path: str = "") -> Repor
         boundary_edges=b_edges,
         non_manifold_edges=nm_edges,
         problem_faces=problem,
+        shell_roles=list(nest.role),
+        shell_parents=list(nest.parent),
     )
+

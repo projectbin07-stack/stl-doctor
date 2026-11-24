@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass, field
 
 from .mesh import Face, Mesh, edge_map
-from .topology import boundary_loops, orientation, shells
+from .topology import boundary_loops, nesting, orientation, shells
 from .vec import Vec3, cross, dot, length, normalize, sub
 
 
@@ -207,12 +207,14 @@ def repair(
             log.holes_filled += 1
             log.triangles_added += len(new)
 
-    for shell in shells(work, edge_map(work), set()):
-        if shell.closed and shell.signed_volume < 0:
-            log.shells_inverted += 1
-            for f in shell.faces:
-                a, b, c = work.faces[f]
-                work.faces[f] = (a, c, b)
+    # Invert only shells wound wrongly for where they sit; a cavity inside a body keeps its
+    # inward normals (inverting it would fill the cavity in).
+    shell_list = shells(work, edge_map(work), set())
+    for i in nesting(work, shell_list).inverted:
+        log.shells_inverted += 1
+        for f in shell_list[i].faces:
+            a, b, c = work.faces[f]
+            work.faces[f] = (a, c, b)
 
     used = sorted({i for face in work.faces for i in face})
     index = {old: new for new, old in enumerate(used)}
