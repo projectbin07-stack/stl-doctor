@@ -1,10 +1,11 @@
 """Minimal 3MF mesh reader (standard library only).
 
-Reads the first build item of a 3MF package (or the first object when the package has no build
-section), following ``<components>`` references -- including Production-extension ``p:path``
-references into other model parts, which is how Bambu Studio and PrusaSlicer store objects -- and
-applying item and component transforms. Materials, colours, multiple build items and the slicer
-specific metadata are ignored.
+Reads every build item of a 3MF package (or, when the package has no build section, every object
+that no component references), following ``<components>`` references -- including
+Production-extension ``p:path`` references into other model parts, which is how Bambu Studio and
+PrusaSlicer store objects -- and applying item and component transforms. Each build item becomes
+one entry of ``TriangleSoup.objects`` so the checker can report per object. Materials, colours and
+the slicer specific metadata are ignored.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
-from .stlio import STLError, TriangleSoup
+from .stlio import SoupObject, STLError, TriangleSoup
 from .vec import ZERO, Triangle, Vec3, is_finite
 
 CORE_NS = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
@@ -149,38 +150,61 @@ def _collect(
         _collect(pkg, target_part, sub_obj, sub_matrix, out, depth + 1)
 
 
+def _placements(model: ET.Element, part: str) -> list[tuple[ET.Element, Matrix]]:
+    """The objects to print with their transforms: every build item, in file order."""
+    build = model.find(_q("build"))
+    items = build.findall(_q("item")) if build is not None else []
+    if items:
+        return [
+            (
+                _find_object(model, item.get("objectid", ""), part),
+                parse_transform(item.get("transform")),
+            )
+            for item in items
+        ]
+    resources = model.find(_q("resources"))
+    objects = resources.findall(_q("object")) if resources is not None else []
+    if not objects:
+        raise STLError("3MF model has no objects")
+    used = {
+        c.get("objectid")
+        for obj in objects
+        for c in obj.iter(_q("component"))
+        if not c.get(f"{{{PROD_NS}}}path")
+    }
+    roots = [obj for obj in objects if obj.get("id") not in used] or objects[:1]
+    return [(obj, IDENTITY) for obj in roots]
+
+
 def read_3mf(path: str | Path) -> TriangleSoup:
-    """Read the first object of a 3MF file as a triangle soup (normals are left empty)."""
+    """Read every build item of a 3MF file as one triangle soup (normals are left empty)."""
     try:
         zf = zipfile.ZipFile(path)
     except (OSError, zipfile.BadZipFile) as exc:
         raise STLError(f"cannot open {path} as a 3MF (zip) package: {exc}") from exc
+    good: list[Triangle] = []
+    bad: list[int] = []
+    objects: list[SoupObject] = []
+    total = 0
     with zf:
         pkg = _Package(zf)
         part = pkg.root_part()
         model = pkg.model(part)
-        build = model.find(_q("build"))
-        item = build.find(_q("item")) if build is not None else None
-        if item is not None:
-            obj = _find_object(model, item.get("objectid", ""), part)
-            matrix = parse_transform(item.get("transform"))
-        else:
-            resources = model.find(_q("resources"))
-            first = resources.find(_q("object")) if resources is not None else None
-            if first is None:
-                raise STLError("3MF model has no objects")
-            obj, matrix = first, IDENTITY
-        triangles: list[Triangle] = []
-        _collect(pkg, part, obj, matrix, triangles, 0)
-    good: list[Triangle] = []
-    bad: list[int] = []
-    for i, tri in enumerate(triangles):
-        if all(is_finite(v) for v in tri):
-            good.append(tri)
-        else:
-            bad.append(i)
+        placements = _placements(model, part)
+        for number, (obj, matrix) in enumerate(placements, start=1):
+            triangles: list[Triangle] = []
+            _collect(pkg, part, obj, matrix, triangles, 0)
+            start = len(good)
+            for tri in triangles:
+                if all(is_finite(v) for v in tri):
+                    good.append(tri)
+                else:
+                    bad.append(total)
+                total += 1
+            name = obj.get("name") or f"object {obj.get('id', '?')}"
+            objects.append(SoupObject(f"{number}: {name}", start, len(good) - start))
     if not good:
         raise STLError("3MF object contains no usable triangles")
-    return TriangleSoup(
-        good, [ZERO] * len(good), "3mf", obj.get("name", ""), len(triangles), bad, []
-    )
+    first_name = placements[0][0].get("name", "")
+    name = first_name if len(placements) == 1 else f"{len(placements)} build items"
+    return TriangleSoup(good, [ZERO] * len(good), "3mf", name, total, bad, [], objects)

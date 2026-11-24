@@ -191,6 +191,18 @@ def format_text(report: Report) -> str:
     ]
     for w in s["warnings"]:
         lines.append(f"  note       {w}")
+    if report.objects:
+        verdicts = [o["verdict"] for o in report.objects]
+        tally = ", ".join(
+            f"{verdicts.count(v)} {v}" for v in ("pass", "warn", "fail") if v in verdicts
+        )
+        lines.append(f"  objects    {len(report.objects)} build items: {tally}")
+        flagged = [o for o in report.objects if o["verdict"] != "pass"]
+        for o in flagged[:10]:
+            codes = ", ".join(f["code"] for f in o["findings"] if f["severity"] in (ERROR, WARNING))
+            lines.append(f"             {o['verdict'].upper()}  {o['name']}: {codes}")
+        if len(flagged) > 10:
+            lines.append(f"             ... {len(flagged) - 10} more (see --json)")
     lines.append("")
     if not report.findings:
         lines.append("  no problems found")

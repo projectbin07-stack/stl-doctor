@@ -5,7 +5,11 @@ from pathlib import Path
 
 import pytest
 
+import make_fixtures
 from conftest import FIXTURES, check
+from stl_doctor.analysis import Options, analyze
+from stl_doctor.cli import main
+from stl_doctor.mesh import Mesh
 from stl_doctor.stlio import STLError
 from stl_doctor.threemf import IDENTITY, apply, compose, parse_transform, read_3mf
 
@@ -125,3 +129,70 @@ def test_not_a_zip(tmp_path: Path) -> None:
 def test_malformed_packages(tmp_path: Path, parts: dict[str, str], message: str) -> None:
     with pytest.raises(STLError, match=message):
         read_3mf(_pkg(tmp_path, parts))
+
+
+def _plate(tmp_path: Path, build: str) -> Path:
+    good = make_fixtures.box((0.0, 0.0, 0.0), (10.0, 10.0, 10.0))
+    broken = good[:-1]  # one triangle of the top missing: an open box
+    model = (
+        f'<?xml version="1.0" encoding="UTF-8"?><model unit="millimeter" {NS}><resources>'
+        f'<object id="1" type="model" name="bead">{make_fixtures._mesh_xml(good)}</object>'
+        f'<object id="2" type="model" name="cracked">{make_fixtures._mesh_xml(broken)}</object>'
+        f"</resources>{build}</model>"
+    )
+    return _pkg(tmp_path, {"3D/3dmodel.model": model})
+
+
+def test_every_build_item_is_read_with_its_transform(tmp_path: Path) -> None:
+    path = _plate(
+        tmp_path,
+        '<build><item objectid="1" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>'
+        '<item objectid="1" transform="1 0 0 0 1 0 0 0 1 20 0 0"/>'
+        '<item objectid="2" transform="1 0 0 0 1 0 0 0 1 40 0 0"/></build>',
+    )
+    soup = read_3mf(path)
+    assert len(soup.triangles) == 12 + 12 + 11
+    assert soup.source_count == 35
+    assert [(o.name, o.start, o.count) for o in soup.objects] == [
+        ("1: bead", 0, 12),
+        ("2: bead", 12, 12),
+        ("3: cracked", 24, 11),
+    ]
+    xs = {v[0] for t in soup.triangles[12:24] for v in t}
+    assert xs == {20.0, 30.0}
+    report = analyze(Mesh.from_soup(soup), Options(check_thin_walls=False))
+    assert report.stats["size_mm"] == [50.0, 10.0, 10.0]
+    assert report.verdict == "fail"  # the cracked object is open
+    assert [o["verdict"] for o in report.objects] == ["pass", "pass", "fail"]
+    assert report.objects[1]["min"] == [20.0, 0.0, 0.0]
+    assert report.objects[0]["volume_mm3"] == pytest.approx(1000.0)
+    codes = {f["code"] for f in report.objects[2]["findings"]}
+    assert "open_boundaries" in codes
+    assert report.to_dict()["objects"][2]["name"] == "3: cracked"
+
+
+def test_check_cli_lists_failing_objects(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = _plate(
+        tmp_path,
+        '<build><item objectid="1"/>'
+        '<item objectid="2" transform="1 0 0 0 1 0 0 0 1 20 0 0"/></build>',
+    )
+    assert main(["check", str(path), "--no-thin-walls"]) == 2
+    out = capsys.readouterr().out
+    assert "objects    2 build items: 1 pass, 1 fail" in out
+    assert "FAIL  2: cracked: open_boundaries" in out
+
+
+def test_single_item_keeps_object_name_and_no_breakdown(tmp_path: Path) -> None:
+    soup = read_3mf(_plate(tmp_path, '<build><item objectid="1"/></build>'))
+    assert soup.name == "bead"
+    report = analyze(Mesh.from_soup(soup), Options(check_thin_walls=False))
+    assert report.objects == []
+
+
+def test_without_build_section_every_root_object_is_read(tmp_path: Path) -> None:
+    soup = read_3mf(_plate(tmp_path, ""))
+    assert [o.name for o in soup.objects] == ["1: bead", "2: cracked"]
+    assert len(soup.triangles) == 23

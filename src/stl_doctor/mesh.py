@@ -7,7 +7,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .stlio import STLError, TriangleSoup, read_stl_bytes
+from .stlio import SoupObject, STLError, TriangleSoup, read_stl_bytes
 from .threemf import read_3mf
 from .vec import Triangle, Vec3, centroid, distance, normalize, triangle_area, triangle_cross
 
@@ -69,6 +69,8 @@ class Mesh:
     source_count: int = 0
     non_finite: list[int] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    # Objects of a multi-object file (3MF build items); faces keep the soup's triangle order.
+    objects: list[SoupObject] = field(default_factory=list)
 
     @classmethod
     def from_soup(cls, soup: TriangleSoup, tolerance: float = DEFAULT_WELD_TOLERANCE) -> Mesh:
@@ -86,6 +88,7 @@ class Mesh:
             source_count=soup.source_count,
             non_finite=list(soup.non_finite),
             warnings=list(soup.warnings),
+            objects=list(soup.objects),
         )
 
     @classmethod

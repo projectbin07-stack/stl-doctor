@@ -28,6 +28,7 @@ from .topology import (
     nesting,
     orientation,
     shells,
+    signed_volume,
 )
 from .vec import Vec3, dot, normalize
 
@@ -91,6 +92,8 @@ class Report:
     problem_faces: set[int]
     shell_roles: list[str] = field(default_factory=list)
     shell_parents: list[int | None] = field(default_factory=list)
+    # One entry per object of a multi-object file (3MF build items), each checked on its own.
+    objects: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def verdict(self) -> str:
@@ -160,6 +163,7 @@ class Report:
                 for i, s in enumerate(self.shells)
             ],
             "findings": [f.to_dict(opts.max_locations) for f in self.findings],
+            "objects": self.objects,
             "orientation": None
             if best is None
             else {
@@ -653,5 +657,40 @@ def analyze(mesh: Mesh, options: Options | None = None, path: str = "") -> Repor
         problem_faces=problem,
         shell_roles=list(nest.role),
         shell_parents=list(nest.parent),
+        objects=_per_object(mesh, findings),
     )
 
+
+def _per_object(mesh: Mesh, findings: list[Finding]) -> list[dict[str, Any]]:
+    """Break the whole-file result down by object (3MF build item).
+
+    Every check ran on the whole file, so problems between objects (overlaps, bed fit of the plate)
+    are found as well; here each finding that points at faces is attributed to the objects owning
+    those faces. Findings about the file as a whole (bed fit, several shells) are not repeated.
+    """
+    if len(mesh.objects) < 2:
+        return []
+    out: list[dict[str, Any]] = []
+    for obj in mesh.objects:
+        lo_f, hi_f = obj.start, obj.start + obj.count
+        entry: dict[str, Any] = {"name": obj.name, "faces": obj.count}
+        hits = []
+        for f in findings:
+            n = sum(1 for face in f.faces if lo_f <= face < hi_f)
+            if n:
+                hits.append({"code": f.code, "severity": f.severity, "count": n})
+        pts = [mesh.vertices[i] for face in range(lo_f, hi_f) for i in mesh.faces[face]]
+        if pts:
+            lo = (min(p[0] for p in pts), min(p[1] for p in pts), min(p[2] for p in pts))
+            hi = (max(p[0] for p in pts), max(p[1] for p in pts), max(p[2] for p in pts))
+            entry["min"] = _pt(lo)
+            entry["max"] = _pt(hi)
+            entry["size_mm"] = _pt((hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]))
+        else:
+            hits.append({"code": "empty_object", "severity": ERROR, "count": 1})
+        entry["volume_mm3"] = _r(signed_volume(mesh, list(range(lo_f, hi_f))))
+        sev = {h["severity"] for h in hits}
+        entry["verdict"] = "fail" if ERROR in sev else "warn" if WARNING in sev else "pass"
+        entry["findings"] = hits
+        out.append(entry)
+    return out

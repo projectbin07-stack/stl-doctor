@@ -30,6 +30,15 @@ class STLError(ValueError):
 
 
 @dataclass
+class SoupObject:
+    """One object of a multi-object file: ``count`` triangles starting at ``start``."""
+
+    name: str
+    start: int
+    count: int
+
+
+@dataclass
 class TriangleSoup:
     """Triangles exactly as stored in a file, before vertex welding."""
 
@@ -40,6 +49,7 @@ class TriangleSoup:
     source_count: int = 0
     non_finite: list[int] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    objects: list[SoupObject] = field(default_factory=list)
 
 
 def detect_format(data: bytes) -> str:
