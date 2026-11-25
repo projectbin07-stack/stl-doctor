@@ -97,6 +97,8 @@ def models() -> dict[str, list[Facet]]:
         "thin_plate": facets(box((0.0, 0.0, 0.0), (20.0, 0.6, 15.0))),
         "overhang_t": facets(t_shape()),
         "nonmanifold_edge": facets(cube + box((10.0, 10.0, 0.0), (20.0, 20.0, 10.0))),
+        # A 20 mm cube written in inches (0.787 in): the audit's wrong-units repro.
+        "cube_inch": facets(box((0.0, 0.0, 0.0), (20 / 25.4, 20 / 25.4, 20 / 25.4))),
     }
 
 

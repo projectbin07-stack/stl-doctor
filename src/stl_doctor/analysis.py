@@ -220,6 +220,67 @@ def _plural(n: int, word: str, plural: str | None = None) -> str:
     return f"{n} {word if n == 1 else (plural or word + 's')}"
 
 
+#: A model whose largest dimension is below this (mm) was most likely exported in other units.
+SMALL_MODEL_MM = 2.0
+#: A model whose largest dimension is above this (mm) is beyond any desktop printer.
+LARGE_MODEL_MM = 1000.0
+#: (how the rescaling is written, factor, what it assumes the file is in)
+_UNIT_GUESSES_SMALL = (
+    ("x25.4", 25.4, "inches"),
+    ("x10", 10.0, "centimetres"),
+    ("x1000", 1000.0, "metres"),
+)
+_UNIT_GUESSES_LARGE = (
+    ("/25.4", 1 / 25.4, "scaled from inches twice"),
+    ("/1000", 1 / 1000.0, "micrometres"),
+)
+
+
+def units_hint(dims: tuple[float, float, float], bed: Bed) -> Finding | None:
+    """A ``units`` warning when the model is implausibly small or large, else ``None``.
+
+    STL has no unit field: slicers read the numbers as millimetres. A part drawn in inches or
+    metres therefore arrives 25.4 or 1000 times too small. Each rescaling is listed with whether
+    the result would fit ``bed``.
+    """
+    largest = max(dims)
+    if largest <= 0 or SMALL_MODEL_MM <= largest <= LARGE_MODEL_MM:
+        return None
+    small = largest < SMALL_MODEL_MM
+    guesses = _UNIT_GUESSES_SMALL if small else _UNIT_GUESSES_LARGE
+    options = []
+    for written, factor, unit in guesses:
+        scaled = tuple(d * factor for d in dims)
+        size = " x ".join(f"{d:.4g}" for d in scaled)
+        if max(scaled) < SMALL_MODEL_MM:
+            verdict = "still tiny"
+        else:
+            fits, turned = bed.fits((scaled[0], scaled[1], scaled[2]))
+            verdict = "fits the bed" if fits or turned else "too big for the bed"
+        options.append(f"{written} ({unit}): {size} mm, {verdict}")
+    size_now = " x ".join(f"{d:.4g}" for d in dims)
+    if small:
+        title = "Implausibly small: wrong units?"
+        lead = (
+            f"Largest dimension is {largest:.4g} mm ({size_now} mm), below {SMALL_MODEL_MM:g} mm. "
+            "STL has no units and slicers read millimetres; was it exported in other units? "
+        )
+    else:
+        title = "Implausibly large: wrong units?"
+        lead = (
+            f"Largest dimension is {largest:.4g} mm ({size_now} mm), above "
+            f"{LARGE_MODEL_MM:g} mm. STL has no units and slicers read millimetres; was it "
+            "scaled twice or exported in other units? "
+        )
+    return Finding(
+        "units",
+        WARNING,
+        title,
+        1,
+        lead + "Rescaled: " + "; ".join(options) + ". Scale it in the CAD export or slicer.",
+    )
+
+
 def analyze(mesh: Mesh, options: Options | None = None, path: str = "") -> Report:
     opts = options or Options()
     findings: list[Finding] = []
@@ -555,6 +616,11 @@ def analyze(mesh: Mesh, options: Options | None = None, path: str = "") -> Repor
                 [_loc(_mid(lo, hi))],
             )
         )
+
+    units = units_hint(dims, opts.bed)
+    if units is not None:
+        units.locations.append(_loc(_mid(lo, hi)))
+        findings.append(units)
 
     overhang = overhangs(pmesh, geometric, opts.overhang_angle)
     if overhang.faces:

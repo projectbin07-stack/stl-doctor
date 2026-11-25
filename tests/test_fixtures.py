@@ -16,7 +16,7 @@ def _members(path: Path) -> dict[str, bytes]:
 
 def test_committed_fixtures_match_generator(tmp_path: Path) -> None:
     written = make_fixtures.generate(tmp_path)
-    assert len(written) == 21
+    assert len(written) == 23
     for path in written:
         committed = FIXTURES / path.name
         assert committed.exists(), f"{path.name} missing; run python tests/make_fixtures.py"

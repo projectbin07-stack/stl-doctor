@@ -248,3 +248,57 @@ def test_json_dict_shape() -> None:
         "overhangs",
         "multiple_shells",
     }
+
+
+def test_inch_scale_cube_gets_a_units_hint(fmt: str) -> None:
+    # The audit repro: a 20 mm cube exported in inches arrives as a 0.787 mm cube.
+    r = check(f"cube_inch_{fmt}.stl")
+    units = r.finding("units")
+    assert units is not None
+    assert units.severity == "warning"
+    assert units.title == "Implausibly small: wrong units?"
+    assert "Largest dimension is 0.7874 mm" in units.message
+    assert "x25.4 (inches): 20 x 20 x 20 mm, fits the bed" in units.message
+    assert "x1000 (metres): 787.4 x 787.4 x 787.4 mm, too big for the bed" in units.message
+    assert r.verdict == "warn"
+    assert r.exit_code() == 0
+    assert r.exit_code(strict=True) == 1
+
+
+def test_metre_scale_cube_points_at_x1000() -> None:
+    side = 0.02  # 20 mm written in metres
+    r = analyze(Mesh.from_triangles(_box((0, 0, 0), (side, side, side))))
+    units = r.finding("units")
+    assert units is not None
+    assert "x25.4 (inches): 0.508 x 0.508 x 0.508 mm, still tiny" in units.message
+    assert "x1000 (metres): 20 x 20 x 20 mm, fits the bed" in units.message
+
+
+def test_implausibly_large_model() -> None:
+    # A 100 mm cube scaled from inches twice: 2540 mm.
+    r = analyze(Mesh.from_triangles(_box((0, 0, 0), (2540, 2540, 2540))))
+    units = r.finding("units")
+    assert units is not None
+    assert units.title == "Implausibly large: wrong units?"
+    assert "/25.4 (scaled from inches twice): 100 x 100 x 100 mm, fits the bed" in units.message
+    assert "/1000 (micrometres): 2.54 x 2.54 x 2.54 mm, fits the bed" in units.message
+    assert r.finding("exceeds_bed") is not None
+
+
+def test_plausible_sizes_have_no_units_hint() -> None:
+    for side in (2.0, 20.0, 1000.0):
+        r = analyze(Mesh.from_triangles(_box((0, 0, 0), (side, side, side))))
+        assert r.finding("units") is None, side
+    # Only the largest dimension counts: a 0.6 mm thick plate is thin, not mis-scaled.
+    assert check("thin_plate_binary.stl").finding("units") is None
+
+
+def test_units_hint_uses_the_selected_bed() -> None:
+    # 0.2 mm read as metres is 200 mm: fits a P1S (256 mm), not an A1 mini (180 mm).
+    tri = _box((0, 0, 0), (0.2, 0.2, 0.2))
+    p1s = analyze(Mesh.from_triangles(tri)).finding("units")
+    mini = analyze(Mesh.from_triangles(tri), Options(bed=PRINTERS["a1-mini"])).finding("units")
+    assert p1s is not None
+    assert mini is not None
+    assert "x1000 (metres): 200 x 200 x 200 mm, fits the bed" in p1s.message
+    assert "x1000 (metres): 200 x 200 x 200 mm, too big for the bed" in mini.message

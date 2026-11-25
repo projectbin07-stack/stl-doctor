@@ -60,6 +60,7 @@ Checks (each with severity, count and locations)
 | `open_boundaries` | error | holes: boundary loops with edge count and perimeter |
 | `inconsistent_winding` | error | faces whose winding disagrees with their shell (BFS propagation per shell) |
 | `exceeds_bed` | error / warning | larger than the build volume (warning if it fits after a 90 degree turn) |
+| `units` | warning | largest dimension below 2 mm or above 1000 mm: probably exported in inches, centimetres, metres or scaled twice; lists each rescaling and whether it fits the bed |
 | `inside_out` | warning | closed shell wound the wrong way for where it sits: an outer body with negative volume, or a cavity inside a body with outward normals |
 | `normal_mismatch` | warning | stored facet normal more than 45 degrees from the winding normal |
 | `degenerate_faces` | warning | zero-area faces or faces collapsed by welding |
@@ -344,7 +345,8 @@ included.
 - Only triangle meshes; 3MF materials, colours and slicer metadata are ignored.
 - The volume of overlapping shells is their sum, not their union. It is labelled as such, but the
   union is not computed.
-- STL units are assumed to be millimetres.
+- STL units are assumed to be millimetres. The `units` hint only fires outside 2-1000 mm, so a
+  part drawn in centimetres that is 2-100 mm across in the file is not flagged.
 - Hole filling only closes loops that are planar (within 1% of their size) and do not touch
   themselves; anything else is reported as skipped. Non-manifold edges and self-intersections are
   reported but not repaired.
