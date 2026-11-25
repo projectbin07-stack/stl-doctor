@@ -118,11 +118,11 @@ pip install "stl-doctor[fast] @ git+https://github.com/projectbin07-stack/stl-do
 
 ## Quick start
 
-The outputs below are from the fixtures in `tests/fixtures`, run with version 0.3.0.
+The outputs below are from the fixtures in `tests/fixtures`, run with version 0.4.0.
 
 ```console
 $ stl-doctor check overhang_t_binary.stl
-stl-doctor 0.3.0  overhang_t_binary.stl
+stl-doctor 0.4.0  overhang_t_binary.stl
   format     binary, 28 facets in file
   mesh       28 faces, 16 vertices (welded at 0.0001 mm), 1 shell(s)
   size       30.00 x 10.00 x 25.00 mm, fits Bambu Lab P1S (256 x 256 x 256 mm)
