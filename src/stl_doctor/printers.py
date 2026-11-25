@@ -1,8 +1,15 @@
-"""Build volumes of common printers (mm). Values are the manufacturers' published build volumes."""
+"""Build volumes of the printers in the shared registry (mm).
+
+The figures come from ``print_registry.json``, the printer and material registry shared with
+gcode-insight, printfarm-planner and print-forge. Each printer there carries the manufacturer
+pages its published build volume was taken from.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+from .registry import load_registry
 
 
 @dataclass(frozen=True)
@@ -24,11 +31,7 @@ class Bed:
 
 
 PRINTERS: dict[str, Bed] = {
-    "p1s": Bed("Bambu Lab P1S", 256, 256, 256),
-    "p1p": Bed("Bambu Lab P1P", 256, 256, 256),
-    "x1c": Bed("Bambu Lab X1 Carbon", 256, 256, 256),
-    "a1": Bed("Bambu Lab A1", 256, 256, 256),
-    "a1-mini": Bed("Bambu Lab A1 mini", 180, 180, 180),
+    p.key: Bed(p.full_name, *p.build_volume_mm) for p in load_registry().printers
 }
 
 DEFAULT_PRINTER = "p1s"

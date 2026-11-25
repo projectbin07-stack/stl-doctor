@@ -52,3 +52,19 @@ jobs:
         run: |
           python -m pip uninstall -y numpy
           pytest -q tests/test_printability.py tests/test_checks.py
+
+  registry:
+    # The printer and material registry is vendored from gcode-insight (the canonical copy).
+    # Both files must be byte-identical to the pinned release; see gcode-insight docs/registry.md.
+    name: registry matches gcode-insight v0.3.0
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compare vendored registry files
+        run: |
+          base=https://raw.githubusercontent.com/projectbin07-stack/gcode-insight/v0.3.0/src/gcode_insight
+          for f in registry.py print_registry.json; do
+            curl -fsSL "$base/$f" -o "/tmp/$f"
+            cmp "/tmp/$f" "src/stl_doctor/$f"
+            echo "$f matches gcode-insight v0.3.0"
+          done

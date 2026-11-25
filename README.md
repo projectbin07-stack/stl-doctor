@@ -78,6 +78,14 @@ role: body, void, embedded, inside_out or open), watertightness, whether the vol
 shells that overlap (`volume_is_sum_of_overlapping_shells`; the printed volume is then smaller),
 fit on Bambu Lab P1S/P1P/X1C/A1 (256 mm cube), A1 mini (180 mm cube) or a custom bed.
 
+The printer build volumes come from the printer and material registry shared with gcode-insight,
+printfarm-planner and print-forge (`src/stl_doctor/print_registry.json`, loaded by
+`registry.py`). Every printer in it lists the manufacturer pages its figures were taken from.
+Both files are copied unchanged from gcode-insight, the canonical copy, and a CI job checks that
+they still match the pinned gcode-insight release. See gcode-insight's
+[docs/registry.md](https://github.com/projectbin07-stack/gcode-insight/blob/main/docs/registry.md).
+`--printer` also accepts the registry's names and aliases, for example `X1C` or `"A1 mini"`.
+
 Printability
 - Overhang map with area and projected (support footprint) area.
 - Thin-wall candidates by casting a ray inward from each near-vertical face against the mesh.
@@ -264,6 +272,8 @@ src/stl_doctor/
   grid.py          uniform grid over triangle bounding boxes; ray/triangle test
   intersect.py     triangle/triangle test + grid broad phase
   printability.py  overhangs, thin walls, orientation search (numpy optional)
+  printers.py      build volumes, taken from the shared registry
+  registry.py      shared printer/material registry (vendored from gcode-insight, with print_registry.json)
   analysis.py      runs all checks, builds Findings and the Report (verdict, JSON)
   repair.py        repairs and ear-clipping hole filler
   html_report.py   HTML/SVG report

@@ -67,6 +67,11 @@ def test_printer_and_custom_bed(tmp_path: Path) -> None:
     assert code == 2
     assert "does not fit on Bambu Lab A1 mini (180 x 180 x 180 mm)" in out
     assert run("check", str(big), "--bed", "220x220x250")[0] == 0
+    # Registry names and aliases work as well as keys.
+    code, out, _ = run("check", str(big), "--printer", "A1 mini")
+    assert code == 2
+    assert "Bambu Lab A1 mini" in out
+    assert "Bambu Lab X1 Carbon" in run("check", str(big), "--printer", "X1C")[1]
 
 
 def test_html_report_written(tmp_path: Path) -> None:

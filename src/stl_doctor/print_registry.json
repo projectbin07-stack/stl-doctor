@@ -1,0 +1,257 @@
+{
+  "registry_version": 1,
+  "schema_version": 1,
+  "canonical": "https://github.com/projectbin07-stack/gcode-insight/blob/main/src/gcode_insight/print_registry.json",
+  "about": "Printer and material registry shared by gcode-insight, printfarm-planner, print-forge and stl-doctor. Each repo vendors this file and registry.py byte for byte; CI compares the copies with the pinned gcode-insight release. Printer figures are the manufacturer's published specifications, each with its source. Bump registry_version whenever data changes.",
+  "printers": [
+    {
+      "key": "p1s",
+      "vendor": "Bambu Lab",
+      "model": "P1S",
+      "aliases": [],
+      "build_volume_mm": [256, 256, 256],
+      "enclosed": true,
+      "nozzle": {"material": "stainless steel", "included_mm": 0.4, "options_mm": [0.2, 0.4, 0.6, 0.8]},
+      "build_plates": {
+        "included": null,
+        "compatible": [
+          "Bambu Textured PEI Plate",
+          "Bambu Cool Plate",
+          "Bambu Engineering Plate",
+          "Bambu High Temperature Plate"
+        ]
+      },
+      "ams": {"max_units": 4, "slots_per_unit": 4, "max_slots": 16, "ams_lite_max_units": 0},
+      "notes": [
+        "Bambu Studio's default printable height is 250 mm (to protect the heatbed); the published build volume is 256 mm.",
+        "The source names the included plate only as 'Build Plate'.",
+        "max_slots assumes four-slot AMS or AMS 2 Pro units; an AMS HT has one slot."
+      ],
+      "sources": [
+        {
+          "url": "https://us.store.bambulab.com/products/p1s",
+          "retrieved": "2026-11-25",
+          "covers": "build volume, enclosure, nozzle, build plates; 'up to 16-color if you stack up 4 AMS units'"
+        },
+        {
+          "url": "https://wiki.bambulab.com/en/ams/manual/multi-model-AMS-compatibility-guide",
+          "retrieved": "2026-11-25",
+          "covers": "X1/P1 series: up to 4 AMS units; AMS lite is only compatible with A series printers"
+        },
+        {
+          "url": "https://us.store.bambulab.com/products/ams-multicolor-printing",
+          "retrieved": "2026-11-25",
+          "covers": "each AMS has 4 filament slots"
+        }
+      ]
+    },
+    {
+      "key": "p1p",
+      "vendor": "Bambu Lab",
+      "model": "P1P",
+      "aliases": [],
+      "build_volume_mm": [256, 256, 256],
+      "enclosed": false,
+      "nozzle": {"material": "stainless steel", "included_mm": 0.4, "options_mm": [0.2, 0.4, 0.6, 0.8]},
+      "build_plates": {
+        "included": null,
+        "compatible": [
+          "Bambu Textured PEI Plate",
+          "Bambu Cool Plate",
+          "Bambu Engineering Plate",
+          "Bambu High Temperature Plate"
+        ]
+      },
+      "ams": {"max_units": 4, "slots_per_unit": 4, "max_slots": 16, "ams_lite_max_units": 0},
+      "notes": [
+        "Figures are from the P1P column of the P1P/P1S comparison table on the P1S product page.",
+        "max_slots assumes four-slot AMS or AMS 2 Pro units; an AMS HT has one slot."
+      ],
+      "sources": [
+        {
+          "url": "https://us.store.bambulab.com/products/p1s",
+          "retrieved": "2026-11-25",
+          "covers": "P1P/P1S comparison table: build volume, open frame, nozzle, build plates"
+        },
+        {
+          "url": "https://wiki.bambulab.com/en/ams/manual/multi-model-AMS-compatibility-guide",
+          "retrieved": "2026-11-25",
+          "covers": "X1/P1 series: up to 4 AMS units; AMS lite is only compatible with A series printers"
+        },
+        {
+          "url": "https://us.store.bambulab.com/products/ams-multicolor-printing",
+          "retrieved": "2026-11-25",
+          "covers": "each AMS has 4 filament slots"
+        }
+      ]
+    },
+    {
+      "key": "x1c",
+      "vendor": "Bambu Lab",
+      "model": "X1 Carbon",
+      "aliases": ["X1C", "X1-Carbon"],
+      "build_volume_mm": [256, 256, 256],
+      "enclosed": true,
+      "nozzle": {"material": "hardened steel", "included_mm": 0.4, "options_mm": [0.2, 0.4, 0.6, 0.8]},
+      "build_plates": {
+        "included": ["Bambu Cool Plate", "Bambu Engineering Plate"],
+        "compatible": ["Bambu Cool Plate", "Bambu Engineering Plate", "Bambu High Temperature Plate"]
+      },
+      "ams": {"max_units": 4, "slots_per_unit": 4, "max_slots": 16, "ams_lite_max_units": 0},
+      "notes": [
+        "The X1 Carbon store page no longer resolves; the specification table of Bambu Lab's X1-Carbon Combo quick start guide is used instead.",
+        "max_slots assumes four-slot AMS or AMS 2 Pro units; an AMS HT has one slot."
+      ],
+      "sources": [
+        {
+          "url": "https://cdn1.bambulab.com/documentation/Quick%20Start%20Guide%20for%20X1-Carbon%20Combo.pdf",
+          "retrieved": "2026-11-25",
+          "covers": "specification table: build volume, enclosure, nozzle, included and optional build plates"
+        },
+        {
+          "url": "https://wiki.bambulab.com/en/ams/manual/multi-model-AMS-compatibility-guide",
+          "retrieved": "2026-11-25",
+          "covers": "X1/P1 series: up to 4 AMS units; AMS lite is only compatible with A series printers"
+        },
+        {
+          "url": "https://us.store.bambulab.com/products/ams-multicolor-printing",
+          "retrieved": "2026-11-25",
+          "covers": "each AMS has 4 filament slots"
+        }
+      ]
+    },
+    {
+      "key": "a1",
+      "vendor": "Bambu Lab",
+      "model": "A1",
+      "aliases": [],
+      "build_volume_mm": [256, 256, 256],
+      "enclosed": false,
+      "nozzle": {"material": "stainless steel", "included_mm": 0.4, "options_mm": [0.2, 0.4, 0.6, 0.8]},
+      "build_plates": {
+        "included": ["Bambu Textured PEI Plate"],
+        "compatible": [
+          "Bambu Textured PEI Plate",
+          "Bambu Smooth PEI Plate",
+          "Bambu Dual-Texture PEI Plate",
+          "Bambu High Temperature Plate (Smooth PEI)",
+          "Bambu Cool Plate"
+        ]
+      },
+      "ams": {"max_units": 4, "slots_per_unit": 4, "max_slots": 16, "ams_lite_max_units": 1},
+      "notes": [
+        "Four AMS, AMS 2 Pro or AMS HT units need the A Series AMS Hub and firmware 01.07.00.00 or later; otherwise one AMS lite (4 slots). AMS lite cannot be mixed with the other AMS models.",
+        "max_slots assumes four-slot AMS or AMS 2 Pro units; an AMS HT has one slot."
+      ],
+      "sources": [
+        {
+          "url": "https://us.store.bambulab.com/products/a1",
+          "retrieved": "2026-11-25",
+          "covers": "build volume, nozzle, build plates"
+        },
+        {
+          "url": "https://wiki.bambulab.com/en/ams/manual/multi-model-AMS-compatibility-guide",
+          "retrieved": "2026-11-25",
+          "covers": "A1 series: up to 4 AMS units via the A Series AMS Hub, or one AMS lite"
+        },
+        {
+          "url": "https://us.store.bambulab.com/products/ams-multicolor-printing",
+          "retrieved": "2026-11-25",
+          "covers": "each AMS has 4 filament slots"
+        }
+      ]
+    },
+    {
+      "key": "a1-mini",
+      "vendor": "Bambu Lab",
+      "model": "A1 mini",
+      "aliases": [],
+      "build_volume_mm": [180, 180, 180],
+      "enclosed": false,
+      "nozzle": {"material": "stainless steel", "included_mm": 0.4, "options_mm": [0.2, 0.4, 0.6, 0.8]},
+      "build_plates": {
+        "included": ["Bambu Textured PEI Plate"],
+        "compatible": ["Bambu Textured PEI Plate", "Bambu Smooth PEI Plate"]
+      },
+      "ams": {"max_units": 4, "slots_per_unit": 4, "max_slots": 16, "ams_lite_max_units": 1},
+      "notes": [
+        "Four AMS, AMS 2 Pro or AMS HT units need the A1 mini AMS hub bracket and the A Series AMS Hub; otherwise one AMS lite (4 slots). AMS lite cannot be mixed with the other AMS models.",
+        "max_slots assumes four-slot AMS or AMS 2 Pro units; an AMS HT has one slot."
+      ],
+      "sources": [
+        {
+          "url": "https://us.store.bambulab.com/products/a1-mini",
+          "retrieved": "2026-11-25",
+          "covers": "build volume, nozzle, build plates"
+        },
+        {
+          "url": "https://wiki.bambulab.com/en/a1/manual/ams-connection-guide",
+          "retrieved": "2026-11-25",
+          "covers": "A Series AMS Hub, shown on the A1 mini: up to four AMS units"
+        },
+        {
+          "url": "https://us.store.bambulab.com/products/ams-multicolor-printing",
+          "retrieved": "2026-11-25",
+          "covers": "each AMS has 4 filament slots"
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "key": "PLA",
+      "name": "polylactic acid",
+      "aliases": ["PLA+", "PLA Plus", "PLA Pro", "PLA Basic", "PLA Matte", "PLA Silk", "Silk PLA", "PLA Silk+", "PLA HF", "PLA Tough", "PLA-CF", "PLA Metal", "PLA Marble", "PLA Sparkle", "PLA Galaxy", "PLA Glow", "PLA Translucent"],
+      "density_g_cm3": 1.24
+    },
+    {
+      "key": "PETG",
+      "name": "glycol-modified polyethylene terephthalate",
+      "aliases": ["PET-G", "PETG+", "PETG Basic", "PETG HF", "PETG Translucent", "PETG-CF"],
+      "density_g_cm3": 1.27
+    },
+    {
+      "key": "ABS",
+      "name": "acrylonitrile butadiene styrene",
+      "aliases": ["ABS+", "ABS-GF"],
+      "density_g_cm3": 1.04
+    },
+    {
+      "key": "ASA",
+      "name": "acrylonitrile styrene acrylate",
+      "aliases": ["ASA Aero", "ASA-CF"],
+      "density_g_cm3": 1.07
+    },
+    {
+      "key": "TPU",
+      "name": "thermoplastic polyurethane",
+      "aliases": ["TPU 95A", "TPU 95A HF", "TPU 90A", "TPU 85A", "TPU for AMS"],
+      "density_g_cm3": 1.21
+    },
+    {
+      "key": "PA",
+      "name": "polyamide (nylon)",
+      "aliases": ["Nylon", "PA6", "PA12", "PA-CF", "PA6-CF", "PA6-GF", "PAHT-CF", "PA12-CF"],
+      "density_g_cm3": null
+    },
+    {
+      "key": "PC",
+      "name": "polycarbonate",
+      "aliases": ["PC FR"],
+      "density_g_cm3": null
+    },
+    {
+      "key": "PET",
+      "name": "polyethylene terephthalate",
+      "aliases": ["PET-CF"],
+      "density_g_cm3": null
+    },
+    {
+      "key": "PVA",
+      "name": "polyvinyl alcohol",
+      "aliases": [],
+      "density_g_cm3": null
+    }
+  ],
+  "material_density_note": "Densities are the generic values gcode-insight has used since 0.1.0, not figures from a manufacturer datasheet; brands differ by a few percent, and filled (CF/GF) grades are denser than the base polymer. Pass the spool's datasheet density where mass matters. null means no generic value is held."
+}

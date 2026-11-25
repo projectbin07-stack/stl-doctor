@@ -15,6 +15,7 @@ from .html_report import render_html
 from .mesh import DEFAULT_WELD_TOLERANCE, Mesh, load_mesh
 from .printability import best_orientations
 from .printers import DEFAULT_PRINTER, PRINTERS, Bed, parse_bed
+from .registry import load_registry
 from .repair import repair
 from .stlio import STLError, write_stl
 from .vec import rotate_xy
@@ -60,6 +61,12 @@ def _bed_arg(text: str) -> Bed:
         raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
+def _printer_arg(text: str) -> str:
+    """Accept registry names as well as keys: ``X1C`` or ``"A1 mini"`` -> ``x1c`` / ``a1-mini``."""
+    spec = load_registry().printer(text)
+    return spec.key if spec is not None else text
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="stl-doctor",
@@ -87,6 +94,7 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("file", help="STL (ASCII or binary) or 3MF file")
     check.add_argument(
         "--printer",
+        type=_printer_arg,
         choices=sorted(PRINTERS),
         default=DEFAULT_PRINTER,
         help=f"build volume to check against (default {DEFAULT_PRINTER})",
