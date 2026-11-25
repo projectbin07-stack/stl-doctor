@@ -4,6 +4,32 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-11-25
+
+### Added
+
+- `units` warning for models whose largest dimension is below 2 mm or above 1000 mm (audit #47).
+  STL has no unit field, so a part exported in inches or metres arrives 25.4 or 1000 times too
+  small. The warning lists the rescalings (x25.4, x10, x1000, or /25.4, /1000 for oversize
+  models) and whether each would fit the selected bed. Before and after, on the audit repro
+  `cube_inch.stl` (a 20 mm cube written in inches):
+
+  ```text
+  0.2.0  verdict: WARN (0 errors, 1 warning, 1 note)   thin_walls only
+  0.3.0  verdict: WARN (0 errors, 2 warnings, 1 note)  units: "x25.4 (inches): 20 x 20 x 20 mm,
+         fits the bed" + thin_walls
+  ```
+
+- `--printer` accepts registry names and aliases (`X1C`, `"A1 mini"`) as well as keys.
+
+### Changed
+
+- Build volumes now come from the printer and material registry shared with gcode-insight,
+  printfarm-planner and print-forge (audit #49). `registry.py` and `print_registry.json` are
+  vendored unchanged from gcode-insight v0.3.0, and a new CI job fails if they drift from that
+  tag. The five volumes are the same as before; each printer now carries its manufacturer
+  sources.
+
 ## [0.2.0] - 2026-11-24
 
 ### Fixed
@@ -47,5 +73,6 @@ All notable changes to this project are documented here. The format follows
 - Self-contained HTML report with five inline-SVG views, light/dark themes and no JavaScript.
 - Fixture generator, tests with hand-derived expected values, benchmark script.
 
+[0.3.0]: https://github.com/projectbin07-stack/stl-doctor/releases/tag/v0.3.0
 [0.2.0]: https://github.com/projectbin07-stack/stl-doctor/releases/tag/v0.2.0
 [0.1.0]: https://github.com/projectbin07-stack/stl-doctor/releases/tag/v0.1.0

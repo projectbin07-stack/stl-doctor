@@ -118,11 +118,11 @@ pip install "stl-doctor[fast] @ git+https://github.com/projectbin07-stack/stl-do
 
 ## Quick start
 
-The outputs below are from the fixtures in `tests/fixtures`, run with version 0.2.0.
+The outputs below are from the fixtures in `tests/fixtures`, run with version 0.3.0.
 
 ```console
 $ stl-doctor check overhang_t_binary.stl
-stl-doctor 0.2.0  overhang_t_binary.stl
+stl-doctor 0.3.0  overhang_t_binary.stl
   format     binary, 28 facets in file
   mesh       28 faces, 16 vertices (welded at 0.0001 mm), 1 shell(s)
   size       30.00 x 10.00 x 25.00 mm, fits Bambu Lab P1S (256 x 256 x 256 mm)
@@ -190,6 +190,21 @@ $ stl-doctor repair hollow.stl fixed.stl
   inverted 0 inside-out shells
 ...
   watertight: True -> True, volume 7000.00 -> 7000.00 mm^3
+```
+
+A 20 mm cube exported in inches is 0.787 mm across in the file. STL has no units, so it gets a
+units hint that lists the likely rescalings:
+
+```console
+$ stl-doctor check cube_inch_binary.stl --no-thin-walls
+...
+  size       0.79 x 0.79 x 0.79 mm, fits Bambu Lab P1S (256 x 256 x 256 mm)
+...
+  WARN  Implausibly small: wrong units? [units]: 1
+        Largest dimension is 0.7874 mm (0.7874 x 0.7874 x 0.7874 mm), below 2 mm. STL has no units and slicers read millimetres; was it exported in other units? Rescaled: x25.4 (inches): 20 x 20 x 20 mm, fits the bed; x10 (centimetres): 7.874 x 7.874 x 7.874 mm, fits the bed; x1000 (metres): 787.4 x 787.4 x 787.4 mm, too big for the bed. Scale it in the CAD export or slicer.
+        at (0.3937, 0.3937, 0.3937)
+
+verdict: WARN (0 errors, 1 warning, 0 notes)
 ```
 
 Suggest an orientation and write the rotated mesh:
