@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-11-25
+
+### Changed
+
+- The vendored printer and material registry (`registry.py`, `print_registry.json`) is now the
+  copy from gcode-insight v0.4.0, and the `registry` CI job compares against that tag. It is
+  registry schema 2: each printer also carries connection facts (slicer model code, camera
+  stream and port, chamber temperature where a source settles it, each marked official or
+  community) and the registry lists the AMS models. stl-doctor does not use the new fields. The
+  build volumes are unchanged, and `stl-doctor check --printer a1-mini --json` gives
+  byte-identical output to 0.3.0 on all 23 test fixtures.
+
 ## [0.3.0] - 2026-11-25
 
 ### Added
@@ -73,6 +85,7 @@ All notable changes to this project are documented here. The format follows
 - Self-contained HTML report with five inline-SVG views, light/dark themes and no JavaScript.
 - Fixture generator, tests with hand-derived expected values, benchmark script.
 
+[0.4.0]: https://github.com/projectbin07-stack/stl-doctor/releases/tag/v0.4.0
 [0.3.0]: https://github.com/projectbin07-stack/stl-doctor/releases/tag/v0.3.0
 [0.2.0]: https://github.com/projectbin07-stack/stl-doctor/releases/tag/v0.2.0
 [0.1.0]: https://github.com/projectbin07-stack/stl-doctor/releases/tag/v0.1.0

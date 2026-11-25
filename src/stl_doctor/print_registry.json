@@ -1,8 +1,8 @@
 {
-  "registry_version": 1,
-  "schema_version": 1,
+  "registry_version": 2,
+  "schema_version": 2,
   "canonical": "https://github.com/projectbin07-stack/gcode-insight/blob/main/src/gcode_insight/print_registry.json",
-  "about": "Printer and material registry shared by gcode-insight, printfarm-planner, print-forge and stl-doctor. Each repo vendors this file and registry.py byte for byte; CI compares the copies with the pinned gcode-insight release. Printer figures are the manufacturer's published specifications, each with its source. Bump registry_version whenever data changes.",
+  "about": "Printer and material registry shared by gcode-insight, printfarm-planner, print-forge and stl-doctor. Each repo vendors this file and registry.py byte for byte; CI compares the copies with the pinned gcode-insight release. Printer specifications are the manufacturer's published figures, each with its source. Connection facts (schema 2) each name their sources and whether these are official or community findings. Bump registry_version whenever data changes.",
   "printers": [
     {
       "key": "p1s",
@@ -27,6 +27,34 @@
         "The source names the included plate only as 'Build Plate'.",
         "max_slots assumes four-slot AMS or AMS 2 Pro units; an AMS HT has one slot."
       ],
+      "connection": {
+        "slicer_model_id": {
+          "value": "C12", "basis": "official",
+          "sources": [
+            {"url": "https://github.com/bambulab/BambuStudio/blob/23a33758933e712c6041e1f8f135f7d6b50004aa/resources/profiles/BBL/machine/Bambu%20Lab%20P1S.json", "retrieved": "2026-11-25", "covers": "Bambu Studio machine profile \"Bambu Lab P1S\": \"model_id\": \"C12\""}
+          ]
+        },
+        "reported_project_name": {
+          "value": "C12", "basis": "community",
+          "note": "ha-bambulab notes that newer P1S firmware reports an empty esp32 product_name and names the model in the ota module's product_name; project_name may then be absent.",
+          "sources": [
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/utils.py#L368-L400", "retrieved": "2026-11-25", "covers": "ha-bambulab get_printer_type(): P1S = C12 (get_version esp32 module project_name)"}
+          ]
+        },
+        "camera_stream": {
+          "value": "jpeg-tls", "basis": "community",
+          "sources": [
+            {"url": "https://github.com/Doridian/OpenBambuAPI/blob/cc383a2c96576a9f53391c879acfb8dca5c534e4/video.md", "retrieved": "2026-11-25", "covers": "A1 and P1 series: TLS TCP server on port 6000 streaming 1280x720 JPEG frames, user bblp, LAN access code"},
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L312-L315", "retrieved": "2026-11-25", "covers": "supports_feature(): CAMERA_IMAGE (JPEG) for the A1, A1 mini, P1P and P1S, CAMERA_RTSP not"}
+          ]
+        },
+        "camera_port": {
+          "value": 6000, "basis": "community",
+          "sources": [
+            {"url": "https://github.com/Doridian/OpenBambuAPI/blob/cc383a2c96576a9f53391c879acfb8dca5c534e4/video.md", "retrieved": "2026-11-25", "covers": "A1 and P1 series: TLS TCP server on port 6000 streaming 1280x720 JPEG frames, user bblp, LAN access code"}
+          ]
+        }
+      },
       "sources": [
         {
           "url": "https://us.store.bambulab.com/products/p1s",
@@ -67,6 +95,33 @@
         "Figures are from the P1P column of the P1P/P1S comparison table on the P1S product page.",
         "max_slots assumes four-slot AMS or AMS 2 Pro units; an AMS HT has one slot."
       ],
+      "connection": {
+        "slicer_model_id": {
+          "value": "C11", "basis": "official",
+          "sources": [
+            {"url": "https://github.com/bambulab/BambuStudio/blob/23a33758933e712c6041e1f8f135f7d6b50004aa/resources/profiles/BBL/machine/Bambu%20Lab%20P1P.json", "retrieved": "2026-11-25", "covers": "Bambu Studio machine profile \"Bambu Lab P1P\": \"model_id\": \"C11\""}
+          ]
+        },
+        "reported_project_name": {
+          "value": "C11", "basis": "community",
+          "sources": [
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/utils.py#L368-L400", "retrieved": "2026-11-25", "covers": "ha-bambulab get_printer_type(): P1P = C11 (get_version esp32 module project_name)"}
+          ]
+        },
+        "camera_stream": {
+          "value": "jpeg-tls", "basis": "community",
+          "sources": [
+            {"url": "https://github.com/Doridian/OpenBambuAPI/blob/cc383a2c96576a9f53391c879acfb8dca5c534e4/video.md", "retrieved": "2026-11-25", "covers": "A1 and P1 series: TLS TCP server on port 6000 streaming 1280x720 JPEG frames, user bblp, LAN access code"},
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L312-L315", "retrieved": "2026-11-25", "covers": "supports_feature(): CAMERA_IMAGE (JPEG) for the A1, A1 mini, P1P and P1S, CAMERA_RTSP not"}
+          ]
+        },
+        "camera_port": {
+          "value": 6000, "basis": "community",
+          "sources": [
+            {"url": "https://github.com/Doridian/OpenBambuAPI/blob/cc383a2c96576a9f53391c879acfb8dca5c534e4/video.md", "retrieved": "2026-11-25", "covers": "A1 and P1 series: TLS TCP server on port 6000 streaming 1280x720 JPEG frames, user bblp, LAN access code"}
+          ]
+        }
+      },
       "sources": [
         {
           "url": "https://us.store.bambulab.com/products/p1s",
@@ -102,6 +157,35 @@
         "The X1 Carbon store page no longer resolves; the specification table of Bambu Lab's X1-Carbon Combo quick start guide is used instead.",
         "max_slots assumes four-slot AMS or AMS 2 Pro units; an AMS HT has one slot."
       ],
+      "connection": {
+        "slicer_model_id": {
+          "value": "BL-P001", "basis": "official",
+          "sources": [
+            {"url": "https://github.com/bambulab/BambuStudio/blob/23a33758933e712c6041e1f8f135f7d6b50004aa/resources/profiles/BBL/machine/Bambu%20Lab%20X1%20Carbon.json", "retrieved": "2026-11-25", "covers": "Bambu Studio machine profile \"Bambu Lab X1 Carbon\": \"model_id\": \"BL-P001\""}
+          ]
+        },
+        "camera_stream": {
+          "value": "rtsps", "basis": "community",
+          "note": "The firmware release history says LAN live view needs the 'LAN Mode Liveview' switch; the protocol and port are community findings.",
+          "sources": [
+            {"url": "https://github.com/Doridian/OpenBambuAPI/blob/cc383a2c96576a9f53391c879acfb8dca5c534e4/video.md", "retrieved": "2026-11-25", "covers": "X1 series: rtsps://{PRINTER_IP}:322/streaming/live/1, user bblp, LAN access code"},
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L312-L315", "retrieved": "2026-11-25", "covers": "supports_feature(): CAMERA_RTSP for the X1 and X1 Carbon"},
+            {"url": "https://wiki.bambulab.com/en/x1/manual/X1-X1C-firmware-release-history", "retrieved": "2026-11-25", "covers": "'Added support for Liveview via LAN Mode Liveview switch when the device is in LAN mode'"}
+          ]
+        },
+        "camera_port": {
+          "value": 322, "basis": "community",
+          "sources": [
+            {"url": "https://github.com/Doridian/OpenBambuAPI/blob/cc383a2c96576a9f53391c879acfb8dca5c534e4/video.md", "retrieved": "2026-11-25", "covers": "X1 series: rtsps://{PRINTER_IP}:322/streaming/live/1, user bblp, LAN access code"}
+          ]
+        },
+        "chamber_temperature": {
+          "value": true, "basis": "community",
+          "sources": [
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L332-L333", "retrieved": "2026-11-25", "covers": "supports_feature(): CHAMBER_TEMPERATURE for the X1 and X1 Carbon, not for the A1 or A1 mini"}
+          ]
+        }
+      },
       "sources": [
         {
           "url": "https://cdn1.bambulab.com/documentation/Quick%20Start%20Guide%20for%20X1-Carbon%20Combo.pdf",
@@ -143,6 +227,39 @@
         "Four AMS, AMS 2 Pro or AMS HT units need the A Series AMS Hub and firmware 01.07.00.00 or later; otherwise one AMS lite (4 slots). AMS lite cannot be mixed with the other AMS models.",
         "max_slots assumes four-slot AMS or AMS 2 Pro units; an AMS HT has one slot."
       ],
+      "connection": {
+        "slicer_model_id": {
+          "value": "N2S", "basis": "official",
+          "sources": [
+            {"url": "https://github.com/bambulab/BambuStudio/blob/23a33758933e712c6041e1f8f135f7d6b50004aa/resources/profiles/BBL/machine/Bambu%20Lab%20A1.json", "retrieved": "2026-11-25", "covers": "Bambu Studio machine profile \"Bambu Lab A1\": \"model_id\": \"N2S\""}
+          ]
+        },
+        "reported_project_name": {
+          "value": "N2S", "basis": "community",
+          "sources": [
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/utils.py#L368-L400", "retrieved": "2026-11-25", "covers": "ha-bambulab get_printer_type(): A1 = N2S (get_version esp32 module project_name)"}
+          ]
+        },
+        "camera_stream": {
+          "value": "jpeg-tls", "basis": "community",
+          "sources": [
+            {"url": "https://github.com/Doridian/OpenBambuAPI/blob/cc383a2c96576a9f53391c879acfb8dca5c534e4/video.md", "retrieved": "2026-11-25", "covers": "A1 and P1 series: TLS TCP server on port 6000 streaming 1280x720 JPEG frames, user bblp, LAN access code"},
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L312-L315", "retrieved": "2026-11-25", "covers": "supports_feature(): CAMERA_IMAGE (JPEG) for the A1, A1 mini, P1P and P1S, CAMERA_RTSP not"}
+          ]
+        },
+        "camera_port": {
+          "value": 6000, "basis": "community",
+          "sources": [
+            {"url": "https://github.com/Doridian/OpenBambuAPI/blob/cc383a2c96576a9f53391c879acfb8dca5c534e4/video.md", "retrieved": "2026-11-25", "covers": "A1 and P1 series: TLS TCP server on port 6000 streaming 1280x720 JPEG frames, user bblp, LAN access code"}
+          ]
+        },
+        "chamber_temperature": {
+          "value": false, "basis": "community",
+          "sources": [
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L332-L333", "retrieved": "2026-11-25", "covers": "supports_feature(): CHAMBER_TEMPERATURE for the X1 and X1 Carbon, not for the A1 or A1 mini"}
+          ]
+        }
+      },
       "sources": [
         {
           "url": "https://us.store.bambulab.com/products/a1",
@@ -178,6 +295,40 @@
         "Four AMS, AMS 2 Pro or AMS HT units need the A1 mini AMS hub bracket and the A Series AMS Hub; otherwise one AMS lite (4 slots). AMS lite cannot be mixed with the other AMS models.",
         "max_slots assumes four-slot AMS or AMS 2 Pro units; an AMS HT has one slot."
       ],
+      "connection": {
+        "slicer_model_id": {
+          "value": "N1", "basis": "official",
+          "sources": [
+            {"url": "https://github.com/bambulab/BambuStudio/blob/23a33758933e712c6041e1f8f135f7d6b50004aa/resources/profiles/BBL/machine/Bambu%20Lab%20A1%20mini.json", "retrieved": "2026-11-25", "covers": "Bambu Studio machine profile \"Bambu Lab A1 mini\": \"model_id\": \"N1\""}
+          ]
+        },
+        "reported_project_name": {
+          "value": "N1", "basis": "community",
+          "note": "ha-bambulab lists A1 mini boards AP04, AP05 and AP07, all with project_name N1.",
+          "sources": [
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/utils.py#L368-L400", "retrieved": "2026-11-25", "covers": "ha-bambulab get_printer_type(): A1 mini = N1 (get_version esp32 module project_name)"}
+          ]
+        },
+        "camera_stream": {
+          "value": "jpeg-tls", "basis": "community",
+          "sources": [
+            {"url": "https://github.com/Doridian/OpenBambuAPI/blob/cc383a2c96576a9f53391c879acfb8dca5c534e4/video.md", "retrieved": "2026-11-25", "covers": "A1 and P1 series: TLS TCP server on port 6000 streaming 1280x720 JPEG frames, user bblp, LAN access code"},
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L312-L315", "retrieved": "2026-11-25", "covers": "supports_feature(): CAMERA_IMAGE (JPEG) for the A1, A1 mini, P1P and P1S, CAMERA_RTSP not"}
+          ]
+        },
+        "camera_port": {
+          "value": 6000, "basis": "community",
+          "sources": [
+            {"url": "https://github.com/Doridian/OpenBambuAPI/blob/cc383a2c96576a9f53391c879acfb8dca5c534e4/video.md", "retrieved": "2026-11-25", "covers": "A1 and P1 series: TLS TCP server on port 6000 streaming 1280x720 JPEG frames, user bblp, LAN access code"}
+          ]
+        },
+        "chamber_temperature": {
+          "value": false, "basis": "community",
+          "sources": [
+            {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L332-L333", "retrieved": "2026-11-25", "covers": "supports_feature(): CHAMBER_TEMPERATURE for the X1 and X1 Carbon, not for the A1 or A1 mini"}
+          ]
+        }
+      },
       "sources": [
         {
           "url": "https://us.store.bambulab.com/products/a1-mini",
@@ -196,6 +347,20 @@
         }
       ]
     }
+  ],
+  "ams_models": [
+    {"key": "ams", "name": "AMS", "get_version_module": {"value": "ams", "basis": "community", "sources": [
+      {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L4616-L4667", "retrieved": "2026-11-25", "covers": "AMS info_update(): get_version module 'ams/<n>' (P1/X1)"}
+    ]}},
+    {"key": "ams-lite", "name": "AMS lite", "get_version_module": {"value": "ams_f1", "basis": "community", "sources": [
+      {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L4616-L4667", "retrieved": "2026-11-25", "covers": "AMS info_update(): get_version module 'ams_f1/<n>', model 'AMS Lite'"}
+    ]}},
+    {"key": "ams-2-pro", "name": "AMS 2 Pro", "get_version_module": {"value": "n3f", "basis": "community", "sources": [
+      {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L4616-L4667", "retrieved": "2026-11-25", "covers": "AMS info_update(): get_version module 'n3f/<n>', model 'AMS 2 Pro'"}
+    ]}},
+    {"key": "ams-ht", "name": "AMS HT", "get_version_module": {"value": "n3s", "basis": "community", "sources": [
+      {"url": "https://github.com/greghesp/ha-bambulab/blob/130371adea7f5208dc8b21a0689bf82531a08f5d/custom_components/bambu_lab/pybambu/models.py#L4616-L4667", "retrieved": "2026-11-25", "covers": "AMS info_update(): get_version module 'n3s/<n>', model 'AMS HT'"}
+    ]}}
   ],
   "materials": [
     {
@@ -253,5 +418,6 @@
       "density_g_cm3": null
     }
   ],
+  "connection_note": "Schema 2 connection facts. basis official: Bambu Lab's own pages or Bambu Studio source; basis community: third-party reverse engineering of firmware behaviour, which can change. A fact no source settles is left out: the SSDP DevModel.bambu.com value of every model (that it carries model_id is an inference), the X1 Carbon's get_version project_name (reported empty), whether a P1S or P1P reports a usable chamber temperature, camera frame rates, and every firmware version requirement.",
   "material_density_note": "Densities are the generic values gcode-insight has used since 0.1.0, not figures from a manufacturer datasheet; brands differ by a few percent, and filled (CF/GF) grades are denser than the base polymer. Pass the spool's datasheet density where mass matters. null means no generic value is held."
 }
